@@ -25,10 +25,12 @@ service ModelsService {
   rpc subscribeToOpenRouterModels(EmptyRequest) returns (stream OpenRouterCompatibleModelInfo);
   // Updates API configuration
   rpc updateApiConfigurationProto(UpdateApiConfigurationRequest) returns (Empty);
-   // Refreshes and returns Groq models
+  // Refreshes and returns Groq models
   rpc refreshGroqModels(EmptyRequest) returns (OpenRouterCompatibleModelInfo);
   // Refreshes and returns Baseten models
   rpc refreshBasetenModels(EmptyRequest) returns (OpenRouterCompatibleModelInfo);
+  // Get OpenRouter auth callback
+  rpc getOpenRouterAuthCallbackUri(EmptyRequest) returns (OpenRouterAuthCallbackUriResponse);
 }
 
 // List of VS Code LM models
@@ -297,4 +299,8 @@ message ModelsApiConfiguration {
   optional OpenRouterModelInfo act_mode_baseten_model_info = 227;
 
   repeated string favorited_model_ids = 300;
+}
+
+message OpenRouterAuthCallbackUriResponse {
+  string uri = 1;
 }

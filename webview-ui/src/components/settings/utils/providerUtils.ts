@@ -54,6 +54,7 @@ import {
 	basetenDefaultModelId,
 } from "@shared/api"
 import { Mode } from "@shared/storage/types"
+import { ModelsServiceClient } from "@/services/grpc-client"
 
 /**
  * Interface for normalized API configuration
@@ -543,6 +544,7 @@ export async function syncModeConfigurations(
 /**
  * Gets the OpenRouter authentication URL
  */
-export function getOpenRouterAuthUrl(uriScheme?: string) {
-	return `https://openrouter.ai/auth?callback_url=${uriScheme || "vscode"}://saoudrizwan.claude-dev/openrouter`
+export async function getOpenRouterAuthUrl() {
+	const callbackUri = (await ModelsServiceClient.getOpenRouterAuthCallbackUri({})).uri
+	return `https://openrouter.ai/auth?callback_url=${callbackUri}`
 }

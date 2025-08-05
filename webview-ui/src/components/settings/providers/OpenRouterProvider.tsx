@@ -1,7 +1,7 @@
 import { VSCodeCheckbox, VSCodeDropdown, VSCodeOption, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { DebouncedTextField } from "../common/DebouncedTextField"
 import { DropdownContainer } from "../common/ModelSelector"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { getOpenRouterAuthUrl } from "../utils/providerUtils"
 import { useOpenRouterKeyInfo } from "../../ui/hooks/useOpenRouterKeyInfo"
 import VSCodeButtonLink from "../../common/VSCodeButtonLink"
@@ -59,10 +59,23 @@ interface OpenRouterProviderProps {
  * The OpenRouter provider configuration component
  */
 export const OpenRouterProvider = ({ showModelOptions, isPopup, currentMode }: OpenRouterProviderProps) => {
-	const { apiConfiguration, uriScheme } = useExtensionState()
+	const { apiConfiguration } = useExtensionState()
 	const { handleFieldChange } = useApiConfigurationHandlers()
+	const [openRouterAuthUrl, setOpenRouterAuthUrl] = useState<string>("")
 
 	const [providerSortingSelected, setProviderSortingSelected] = useState(!!apiConfiguration?.openRouterProviderSorting)
+
+	useEffect(() => {
+		const fetchAuthUrl = async () => {
+			try {
+				const url = await getOpenRouterAuthUrl()
+				setOpenRouterAuthUrl(url)
+			} catch (error) {
+				console.error("Failed to get OpenRouter auth URL:", error)
+			}
+		}
+		fetchAuthUrl()
+	}, [])
 
 	return (
 		<div>
@@ -81,10 +94,7 @@ export const OpenRouterProvider = ({ showModelOptions, isPopup, currentMode }: O
 					</div>
 				</DebouncedTextField>
 				{!apiConfiguration?.openRouterApiKey && (
-					<VSCodeButtonLink
-						href={getOpenRouterAuthUrl(uriScheme)}
-						style={{ margin: "5px 0 0 0" }}
-						appearance="secondary">
+					<VSCodeButtonLink href={openRouterAuthUrl} style={{ margin: "5px 0 0 0" }} appearance="secondary">
 						Get OpenRouter API Key
 					</VSCodeButtonLink>
 				)}
