@@ -2,8 +2,6 @@
 
 ## 3.20.14
 
-### Patch Changes
-
 - 3001f88: Enabling quickwins and adding a button to show that you can do a walkthrough
 
 ## [3.20.13]
