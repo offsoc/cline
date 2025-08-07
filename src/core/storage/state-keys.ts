@@ -86,6 +86,8 @@ export type GlobalStateKey =
 	| "sapAiResourceGroup"
 	| "claudeCodePath"
 	| "strictPlanModeEnabled"
+	| "FocusChainSettings"
+	| "FocusChainFeatureFlagEnabled"
 	// Settings around plan/act and ephemeral model configuration
 	| "preferredLanguage"
 	| "openaiReasoningEffort"

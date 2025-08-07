@@ -18,6 +18,7 @@ import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
 import { McpHub } from "@services/mcp/McpHub"
 import { AutoApprovalSettings } from "@shared/AutoApprovalSettings"
 import { BrowserSettings } from "@shared/BrowserSettings"
+import { FocusChainSettings } from "@shared/FocusChainSettings"
 import {
 	BrowserAction,
 	BrowserActionResult,
@@ -91,6 +92,7 @@ export class ToolExecutor {
 		// Configuration & Settings
 		private autoApprovalSettings: AutoApprovalSettings,
 		private browserSettings: BrowserSettings,
+		private FocusChainSettings: FocusChainSettings,
 		private cwd: string,
 		private taskId: string,
 		private uuid: string,
@@ -120,6 +122,7 @@ export class ToolExecutor {
 		private removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: ClineAsk | ClineSay) => Promise<void>,
 		private executeCommandTool: (command: string) => Promise<[boolean, any]>,
 		private doesLatestTaskCompletionHaveNewChanges: () => Promise<boolean>,
+		private updateTodoListFromToolResponse: (taskProgress: string | undefined) => Promise<void>,
 	) {
 		this.autoApprover = new AutoApprove(autoApprovalSettings)
 	}
@@ -798,6 +801,10 @@ export class ToolExecutor {
 
 						await this.diffViewProvider.reset()
 
+						if (!block.partial && this.FocusChainSettings.enabled) {
+							await this.updateTodoListFromToolResponse(block.params.task_progress)
+						}
+
 						await this.saveCheckpoint()
 
 						break
@@ -887,6 +894,10 @@ export class ToolExecutor {
 							this.taskState.userMessageContent.push(result.imageBlock)
 						}
 
+						if (!block.partial && this.FocusChainSettings.enabled) {
+							await this.updateTodoListFromToolResponse(block.params.task_progress)
+						}
+
 						await this.saveCheckpoint()
 						break
 					}
@@ -964,6 +975,11 @@ export class ToolExecutor {
 							telemetryService.captureToolUsage(this.taskId, block.name, this.api.getModel().id, false, true)
 						}
 						this.pushToolResult(result, block)
+
+						if (!block.partial && this.FocusChainSettings.enabled) {
+							await this.updateTodoListFromToolResponse(block.params.task_progress)
+						}
+
 						await this.saveCheckpoint()
 						break
 					}
@@ -1036,6 +1052,11 @@ export class ToolExecutor {
 							telemetryService.captureToolUsage(this.taskId, block.name, this.api.getModel().id, false, true)
 						}
 						this.pushToolResult(result, block)
+
+						if (!block.partial) {
+							await this.updateTodoListFromToolResponse(block.params.task_progress)
+						}
+
 						await this.saveCheckpoint()
 						break
 					}
@@ -1120,6 +1141,11 @@ export class ToolExecutor {
 							telemetryService.captureToolUsage(this.taskId, block.name, this.api.getModel().id, false, true)
 						}
 						this.pushToolResult(results, block)
+
+						if (!block.partial) {
+							await this.updateTodoListFromToolResponse(block.params.task_progress)
+						}
+
 						await this.saveCheckpoint()
 						break
 					}
@@ -1294,6 +1320,11 @@ export class ToolExecutor {
 									),
 									block,
 								)
+
+								if (!block.partial) {
+									await this.updateTodoListFromToolResponse(block.params.task_progress)
+								}
+
 								await this.saveCheckpoint()
 								break
 							case "close":
@@ -2168,6 +2199,10 @@ export class ToolExecutor {
 						// Store the number of options for telemetry
 						const options = parsePartialArrayString(optionsRaw || "[]")
 
+						if (!block.partial && this.FocusChainSettings.enabled) {
+							await this.updateTodoListFromToolResponse(block.params.task_progress)
+						}
+
 						this.taskState.isAwaitingPlanResponse = true
 						let {
 							text,
@@ -2222,6 +2257,8 @@ export class ToolExecutor {
 								),
 								block,
 							)
+							// Reset the flag after using it to prevent it from persisting
+							this.taskState.didRespondToPlanAskBySwitchingMode = false
 						} else {
 							// if we didn't switch to ACT MODE, then we can just send the user_feedback message
 							this.pushToolResult(
@@ -2344,9 +2381,17 @@ export class ToolExecutor {
 								await this.saveCheckpoint(true)
 								await addNewChangesFlagToLastCompletionResultMessage()
 								telemetryService.captureTaskCompleted(this.taskId, this.uuid)
+
+								if (this.FocusChainSettings.enabled) {
+									await this.updateTodoListFromToolResponse(block.params.task_progress)
+								}
 							} else {
 								// we already sent a command message, meaning the complete completion message has also been sent
 								await this.saveCheckpoint(true)
+
+								if (this.FocusChainSettings.enabled) {
+									await this.updateTodoListFromToolResponse(block.params.task_progress)
+								}
 							}
 
 							// complete command message
@@ -2369,6 +2414,10 @@ export class ToolExecutor {
 							await this.saveCheckpoint(true)
 							await addNewChangesFlagToLastCompletionResultMessage()
 							telemetryService.captureTaskCompleted(this.taskId, this.uuid)
+
+							if (this.FocusChainSettings.enabled) {
+								await this.updateTodoListFromToolResponse(block.params.task_progress)
+							}
 						}
 
 						// we already sent completion_result says, an empty string asks relinquishes control over button and field
